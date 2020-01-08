@@ -7,11 +7,14 @@ from youtube_history.request_object_parser import ChromeRequest
 from scrapy.http.cookies import CookieJar
 from lxml import html
 from youtube_history.cookie_import import parse_cookies
+from bs4 import BeautifulSoup
 import json
+import string
 
 class YoutubeHistorySpider(scrapy.Spider):
     my_base_url = 'https://www.youtube.com'
     start_url = my_base_url+'/feed/history'
+    filename = "youtube_watch_history.html"
 
     nextlink_egg = 'data-uix-load-more-href="/browse_ajax?action_continuation'
     
@@ -91,32 +94,59 @@ class YoutubeHistorySpider(scrapy.Spider):
                 raise scrapy.exceptions.CloseSpider(
                            reason='No history content returned on json request.')
 
+    def date_parsing(self, datestring):
+        # Date string is converted from MMM DD, YYYY to MM/DD/YYYY
+        # TODO: Handle the parsing for upto one week prior to scraping date which is in the format of Tuesday, Friday, etc
+        if "Jan" in datestring:
+            formatteddate = "01"
+        if "Feb" in datestring:
+            formatteddate = "02"
+        if "Mar" in datestring:
+            formatteddate = "03"
+        if "Apr" in datestring:
+            formatteddate = "04"
+        if "May" in datestring:
+            formatteddate = "05"
+        if "Jun" in datestring:
+            formatteddate = "06"
+        if "Jul" in datestring:
+            formatteddate = "07"
+        if "Aug" in datestring:
+            formatteddate = "08"
+        if "Sep" in datestring:
+            formatteddate = "09"
+        if "Oct" in datestring:
+            formatteddate = "10"
+        if "Nov" in datestring:
+            formatteddate = "11"
+        if "Dec" in datestring:
+            formatteddate = "12"
+        # TODO: make more readable version
+        formatteddate = string.join([formatteddate, string.join(string.split(datestring[4:],", "), "/")],"/")
+        return formatteddate
 
     def sub_parse_video_entries(self, page_contents):
         """Does the actual data extraction"""
-        etree = html.fromstring(page_contents)
-        video_fragments = etree.cssselect('li div.yt-lockup-video')
-        for entry in video_fragments:
-            hitem = YoutubeHistoryItem()
-            title_element = entry.cssselect("h3.yt-lockup-title a.yt-uix-tile-link")
-
-            if len(title_element) == 1:
-                title_element = title_element[0]
-                hitem['title'] = title_element.get('title')
-                hitem['vid'] = title_element.get('href')
-            user_el = entry.cssselect('div.yt-lockup-byline a')
-            if len(user_el) == 1:
-                user_el = user_el[0]
-                hitem['author_id'] = user_el.get('href')
-
-            descp_el = entry.cssselect('div.yt-lockup-description')
-            if len(descp_el) == 1:
-                descp_el = descp_el[0]
-                hitem['description'] = descp_el.text_content()
-            else:
-                hitem['description'] = None
-
-            vtime_el = entry.cssselect('span.video-time')
-            if len(vtime_el) == 1:
-                hitem['time'] = vtime_el[0].text
-            yield hitem
+        historypage = BeautifulSoup(page_contents, "html.parser")
+        # Select the individual days which are contained inside the ytd-item-section-renderer
+        watchdays = historypage.select("ytd-item-section-renderer")
+        for day in watchdays:
+            # Only parse days with valid video entries
+            if len(day) > 1:
+                datestring = day.select("div[id='title'].ytd-item-section-header-renderer")[0].getText()
+                date = self.date_parsing(datestring)
+                # Create a list of all videos for the current "day" and fill in the appropriate fields
+                vidlist = day.select("div[id='dismissable']")
+                for video in vidlist:
+                    hitem = YoutubeHistoryItem()
+                    hitem['date'] = date
+                    titletag = video.select("a[id='video-title']")[0]
+                    hitem['title'] = titletag.getText().strip()
+                    hitem['vid'] = titletag['href']
+                    channeltag = video.select("yt-formatted-string>a.yt-simple-endpoint")[0]
+                    hitem['channel'] = channeltag.getText()
+                    hitem['channel_url'] = channeltag['href']
+                    hitem['description'] = video.select("yt-formatted-string[id='description-text']")[0].getText()
+                    hitem['time'] = video.select("span.ytd-thumbnail-overlay-time-status-renderer")[0].getText()
+                    print(hitem)
+                    yield hitem
