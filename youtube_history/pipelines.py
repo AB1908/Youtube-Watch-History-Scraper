@@ -39,7 +39,7 @@ class DbOutputPipeline(object):
     def __init__(self, *args, **kwargs):
         super(DbOutputPipeline, *args, **kwargs)
         from youtube_history import db_api
-        self.db = db_api.AppDatabase();
+        self.db = db_api.AppDatabase()
 
     def process_item(self, item, spider):
         keys = ["vid", "author_id", "title", "description", "time"]
