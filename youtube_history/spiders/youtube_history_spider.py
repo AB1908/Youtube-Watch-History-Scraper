@@ -102,7 +102,7 @@ class YoutubeHistorySpider(scrapy.Spider):
                 date = date_el[0].text_content()
             else:
                 date = None
-            video_fragments = etree.cssselect('li div.yt-lockup-video')
+            video_fragments = day.cssselect('li div.yt-lockup-video')
             for entry in video_fragments:
                 hitem = YoutubeHistoryItem()
                 hitem['date'] = date
