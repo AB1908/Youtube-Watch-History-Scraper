@@ -6,6 +6,43 @@
 # See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
 
 from scrapy.exceptions import DropItem
+import string
+
+class ConvertDatesPipeline(object):
+    def process_date(self, item, spider):
+        item['date'] = self.date_parsing(item['date'])
+        return item
+
+    def date_parsing(self, datestring):
+        # Date string is converted from MMM DD, YYYY to MM/DD/YYYY
+        # TODO: Handle the parsing for upto one week prior to scraping date which is in the format of Tuesday, Friday, etc
+        if "Jan" in datestring:
+            formatteddate = "01"
+        if "Feb" in datestring:
+            formatteddate = "02"
+        if "Mar" in datestring:
+            formatteddate = "03"
+        if "Apr" in datestring:
+            formatteddate = "04"
+        if "May" in datestring:
+            formatteddate = "05"
+        if "Jun" in datestring:
+            formatteddate = "06"
+        if "Jul" in datestring:
+            formatteddate = "07"
+        if "Aug" in datestring:
+            formatteddate = "08"
+        if "Sep" in datestring:
+            formatteddate = "09"
+        if "Oct" in datestring:
+            formatteddate = "10"
+        if "Nov" in datestring:
+            formatteddate = "11"
+        if "Dec" in datestring:
+            formatteddate = "12"
+        # TODO: make more readable version
+        formatteddate = string.join([formatteddate, string.join(string.split(datestring[4:],", "), "/")],"/")
+        return formatteddate
 
 class CleanUpHistoryEntriesPipeline(object):
     def proccess_items(self, item, spider):
