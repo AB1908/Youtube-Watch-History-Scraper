@@ -9,7 +9,7 @@ from scrapy.exceptions import DropItem
 import string
 
 class ConvertDatesPipeline(object):
-    def process_date(self, item, spider):
+    def process_item(self, item, spider):
         item['date'] = self.date_parsing(item['date'])
         return item
 
