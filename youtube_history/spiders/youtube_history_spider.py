@@ -46,7 +46,7 @@ class YoutubeHistorySpider(scrapy.Spider):
 
 
     def parse_startpage(self, response):
-        body = response.body_as_unicode()
+        body = response.text
         next_uri = self.sub_parse_next_link(body)
         if body.find("viewable when signed out") != -1:
             print("\n"*2," No Sign In" ,"\n")
@@ -75,7 +75,7 @@ class YoutubeHistorySpider(scrapy.Spider):
 
     def parse(self, response):
         if (b'application/json' in response.headers['Content-Type']):
-            jdat = json.loads(response.body_as_unicode())
+            jdat = json.loads(response.text)
             if ('load_more_widget_html' in jdat):
                 next_uri = self.sub_parse_next_link(jdat['load_more_widget_html'])
                 if jdat['load_more_widget_html'].find("viewable when signed out") != -1:
@@ -87,7 +87,8 @@ class YoutubeHistorySpider(scrapy.Spider):
                     yield self.next_request(next_uri, response)
 
             if ('content_html' in jdat):
-                content = jdat['content_html']
+                # content = jdat['content_html']
+                content = response.text
                 for i in self.sub_parse_video_entries(content):
                     yield i
             else:
@@ -127,11 +128,17 @@ class YoutubeHistorySpider(scrapy.Spider):
 
     def sub_parse_video_entries(self, page_contents):
         """Does the actual data extraction"""
-        historypage = BeautifulSoup(page_contents, "html.parser")
+        historypage = BeautifulSoup(page_contents, "lxml")
+        print(len(historypage))
         # Select the individual days which are contained inside the ytd-item-section-renderer
         watchdays = historypage.select("ytd-item-section-renderer")
+        # print(type(watchdays))
+        # print(len(watchdays))
+        print(historypage)
         for day in watchdays:
             # Only parse days with valid video entries
+            print("here")
+            print(type(day))
             if len(day) > 1:
                 datestring = day.select("div[id='title'].ytd-item-section-header-renderer")[0].getText()
                 date = self.date_parsing(datestring)
@@ -140,6 +147,7 @@ class YoutubeHistorySpider(scrapy.Spider):
                 for video in vidlist:
                     hitem = YoutubeHistoryItem()
                     hitem['date'] = date
+                    print(date)
                     titletag = video.select("a[id='video-title']")[0]
                     hitem['title'] = titletag.getText().strip()
                     hitem['vid'] = titletag['href']
