@@ -1,4 +1,3 @@
-from __future__ import print_function
 import scrapy
 from scrapy.utils.project import get_project_settings
 # from ipdb import set_trace as debug
@@ -122,7 +121,6 @@ class YoutubeHistorySpider(scrapy.Spider):
                     hitem['description'] = descp_el.text_content()
                 else:
                     hitem['description'] = None
-
                 vtime_el = entry.cssselect('span.video-time')
                 if len(vtime_el) == 1:
                     hitem['time'] = vtime_el[0].text
