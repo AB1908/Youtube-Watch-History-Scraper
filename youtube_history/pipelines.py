@@ -40,8 +40,7 @@ class ConvertDatesPipeline(object):
             formatteddate = "11"
         if "Dec" in datestring:
             formatteddate = "12"
-        # TODO: make more readable version
-        formatteddate = string.join([formatteddate, string.join(string.split(datestring[4:],", "), "/")],"/")
+        formatteddate = formatteddate + "/" + "/".join(datestring[4:].split(", "))
         return formatteddate
 
 class CleanUpHistoryEntriesPipeline(object):
@@ -76,10 +75,10 @@ class DbOutputPipeline(object):
     def __init__(self, *args, **kwargs):
         super(DbOutputPipeline, *args, **kwargs)
         from youtube_history import db_api
-        self.db = db_api.AppDatabase();
+        self.db = db_api.AppDatabase()
 
     def process_item(self, item, spider):
-        keys = ["vid", "author_id", "title", "description", "time"]
+        keys = ["vid","channel","channel_url","title","description","time","date"]
         args = []
         for k in keys:
             args.append(item[k])
